@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="utf-8">
+    <title>D3 Bar Chart</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style type="text/css">
+      .bar{
+      }.bar:hover{
+        opacity: 1;
+      }svg{
+        padding: 2px;
+      }
+      body{
+        /*background-color: grey;*/
+        color: black;
+        text-align: center;
+      }#title{
+        font-size: 25px;
+        border-bottom: solid 1px black;
+      }.shadow{
+        box-shadow: 1px 1px 10px 2px #224b4b;
+      }#tooltip{
+        padding: 5px;
+        color: black;
+        padding-top: 15px;
+        opacity: 0.8;
+        position: absolute;
+        width: 150px;
+        top: 300px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }#container{
+        /*background-color: #212529;*/
+        padding: 5px 5px;
+      }
+    </style>
+  </head>
+  <body>
+
+    <div id='container'>
+      <div id='title' class='pt-2'>Monthly Global Land-Surface Temperature
+</div>
+      <h5 id='description' class='pt-2'>1753 - 2015: base temperature 8.66℃</h5>
+      <div id='tooltip' style='display: none;' class='rounded bg-dark'>
+        
+      </div>
+      <div id='svg_container'>
+
+      </div>
+      <div class='pt-2 text-center'><p style='padding: 0px; margin: 0px;text-decoration: none; color: black; font-size: normal; font-family: Share Tech Mono, sans;'>Designed and Coded By</p></div>
+        <div class='text-dark pb-2 text-center'><p style='padding: 0px; margin: 0px;text-decoration: none; color: black; font-size: normal; font-family: Share Tech Mono, sans;'><a href='https://instagram.com/kratos_424/' target='_blank' class='text-black'><i class='fa fa-instagram p-1'></i>Kratos_424</a></p></div>
+    </div>
+
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script> -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+    <script type="text/javascript">
+
+      const w = 1200;
+      const h = 400;
+
+      const colors = [
+        "#21497c",
+        "#4575B4",
+        "#74ADD1",
+        "#ABD9E9",
+        "#E0F3F8",
+        "#FFFFBF",
+        "#FEE090",
+        "#FDAE61",
+        "#F46D43",
+        "#D73027",
+        "8c2520"
+      ];
+
+      function roundNumber(num, scale) {
+        if(!("" + num).includes("e")) {
+          return +(Math.round(num + "e+" + scale)  + "e-" + scale);
+        } else {
+          var arr = ("" + num).split("e");
+          var sig = ""
+          if(+arr[1] + scale > 0) {
+            sig = "+";
+          }
+          return +(Math.round(+arr[0] + "e" + sig + (+arr[1] + scale)) + "e-" + scale);
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+
+        const req = new XMLHttpRequest();
+        req.open("GET", "https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/global-temperature.json", true);
+        req.send();
+        req.onload = function(){
+
+          var data = JSON.parse(req.responseText);
+
+          var months = [
+            "January","February","March","April","May","June","July","August","September","October","November","December"
+          ];
+
+          var margin = {left: 100, bottom: 100, top: 20, right: 50};
+          var temps = data.monthlyVariance.map(function(item){
+            return roundNumber(8.66 + item.variance,1);
+          });
+
+          var tempDiff = d3.max(temps) - d3.min(temps);
+
+          var colVal = roundNumber( tempDiff / colors.length, 1 );
+
+          var svg = d3.select('#svg_container').append('svg').attr('width',w+margin.left+margin.right).attr('height',h+margin.top+margin.bottom);
+
+          var scaleX = d3.scaleLinear()
+                          .domain([d3.max( data.monthlyVariance, (d)=>d.year )+10,d3.min( data.monthlyVariance, (d)=>d.year )])
+                          .range([w, 0]);
+          var scaleY = d3.scaleLinear()
+                          .domain([1,13])
+                          .range([0, h]);
+
+          var rectWidth = w/data.monthlyVariance.length; 
+          var rectHeight = h/12;
+
+          var xAxis = d3.axisBottom().scale(scaleX);
+          var yAxis = d3.axisLeft().scale(scaleY).tickFormat((d,i)=>months[i]);
+
+          svg.append('g').call(xAxis).attr('id','x-axis').attr('transform','translate('+ margin.left + ',' + (h+margin.top) + ')');
+          svg.append('g').call(yAxis).attr('id','y-axis').attr('transform','translate('+ margin.left + ',' + margin.top + ')');
+
+          svg.selectAll('rect').data(data.monthlyVariance).enter().append('rect')
+          .attr('class','cell').attr('data-month',(d)=>d.month).attr('data-year',(d)=>d.year)
+          .attr('data-temp',(d,i)=>temps[i]).attr('x',(d)=>scaleX(d.year)+margin.left)
+          .attr('y',(d)=>scaleY(d.month)+margin.top).attr('width',rectWidth).attr('height',rectHeight)
+          .attr('fill', function(d,i){
+            return colors[parseInt(temps[i]/colVal)];
+          });
+
+        };
+
+      });
+    </script>
+  </body>
+</html>
